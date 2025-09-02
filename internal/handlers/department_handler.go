@@ -11,6 +11,8 @@ import (
 
 // DepartmentHandler handles department operations
 type DepartmentHandler struct {
+	BaseHandler // Embedding BaseHandler
+
 	departmentService service.DepartmentService
 }
 

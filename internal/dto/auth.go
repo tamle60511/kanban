@@ -19,6 +19,6 @@ type TokenClaims struct {
 	UserID       int    `json:"user_id"`
 	Username     string `json:"username"`
 	DepartmentID int    `json:"department_id"`
-	Exp          int64  `json:"exp,omitempty"` // Để tương thích ngược, bạn có thể giữ trường này
+	Exp          int64  `json:"exp,omitempty"` // for compatibility
 	jwt.RegisteredClaims
 }

@@ -48,18 +48,18 @@ func (r *inventoryRepository) GetInventoryReport(
 
 	query := `
     SELECT DISTINCT
-        CONVERT(VARCHAR(10), CONVERT(DATETIME, TG042), 103) AS [Ngay CT],
-        TG001 + '-' + TG002 AS [Ma Don ban hang],
-        TG007 AS [KH],
-        ISNULL(TA001 + '-' + TA002, '') AS [Ma phieu ket so],
+        CONVERT(VARCHAR(10), CONVERT(DATETIME, TG042), 103) AS document_date,
+        TG001 + '-' + TG002 AS sales_order_number,
+        TG007 AS customer_name,
+        ISNULL(TA001 + '-' + TA002, '') AS receipt_number,
         CASE
             WHEN TG011 = 'VND' THEN REPLACE(CONVERT(VARCHAR, CONVERT(MONEY, (ISNULL(TG013, 0) + ISNULL(TG025, 0))), 1), '.00', '')
             ELSE CONVERT(VARCHAR, CONVERT(MONEY, (ISNULL(TG013, 0) + ISNULL(TG025, 0))), 1)
-        END AS [Nguyen te],
-        REPLACE(CONVERT(VARCHAR, CONVERT(MONEY, (ISNULL(TG045, 0) + ISNULL(TG046, 0))), 1), '.00', '') AS [Noi te],
-        ISNULL(TD001 + '-' + TD002 + '-' + RIGHT('0' + TD003, 4), '') AS [Ma Don hang chi tiet],
-        ISNULL(TA036, '') AS [Hoa don],
-        ISNULL(TG020, '') AS [Ghi chu]
+        END AS currency_type,
+        REPLACE(CONVERT(VARCHAR, CONVERT(MONEY, (ISNULL(TG045, 0) + ISNULL(TG046, 0))), 1), '.00', '') AS currency,
+        ISNULL(TD001 + '-' + TD002 + '-' + RIGHT('0' + TD003, 4), '') AS detailed_order_number,
+        ISNULL(TA036, '') AS invoice_number,
+        ISNULL(TG020, '') AS notes
     FROM
         COPTG WITH (NOLOCK)
     LEFT JOIN
@@ -88,15 +88,15 @@ func (r *inventoryRepository) GetInventoryReport(
 	for rows.Next() {
 		var item dto.InventoryReportItem
 		if err := rows.Scan(
-			&item.NgayCT,
-			&item.MaDonBanHang,
-			&item.KhachHang,
-			&item.MaPhieuKetSo,
-			&item.NguyenTe,
-			&item.NoiTe,
-			&item.MaDonHangChiTiet,
-			&item.HoaDon,
-			&item.GhiChu,
+			&item.DocumentDate,
+			&item.SalesOrderNumber,
+			&item.CustomerName,
+			&item.ReceiptNumber,
+			&item.CurrencyType,
+			&item.Currency,
+			&item.DetailedOrderNumber,
+			&item.InvoiceNumber,
+			&item.Notes,
 		); err != nil {
 			return nil, fmt.Errorf("error scanning inventory data: %w", err)
 		}

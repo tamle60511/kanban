@@ -17,6 +17,8 @@ import (
 
 // ReportHandler handles report generation requests.
 type ReportHandler struct {
+	BaseHandler // Embedding BaseHandler
+
 	reportService service.ReportService
 	reportRepo    repository.InventoryRepository // Keep if needed elsewhere, though service wraps it.
 }
