@@ -10,6 +10,8 @@ import (
 
 // AuthHandler handles authentication requests
 type AuthHandler struct {
+	BaseHandler // Embedding BaseHandler
+
 	authService service.AuthService
 }
 
@@ -79,19 +81,8 @@ func (h *AuthHandler) GetProfile(c *fiber.Ctx) error {
 
 // SetupRoutes sets up the handler routes
 func (h *AuthHandler) SetupRoutes(router fiber.Router) {
-	router.Post("/login", h.Login)
+	auth := router.Group("/auth")
 
-	// Protected routes
-	protected := router.Group("/", func(c *fiber.Ctx) error {
-		userID, ok := c.Locals("user_id").(int)
-		if !ok || userID == 0 {
-			return c.Status(fiber.StatusUnauthorized).JSON(utils.ErrorResponse(
-				"Authentication required",
-				"User not authenticated",
-			))
-		}
-		return c.Next()
-	})
-
-	protected.Get("/profile", h.GetProfile)
+	auth.Post("/login", h.Login)
+	auth.Get("/profile", h.GetProfile)
 }

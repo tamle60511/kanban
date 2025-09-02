@@ -2,12 +2,13 @@ package utils
 
 import (
 	"bytes"
+	"erp-excel/internal/translate"
 	"fmt"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/xuri/excelize/v2"
+	excelize "github.com/xuri/excelize/v2"
 )
 
 // ExportToExcel exports data to Excel file
@@ -71,7 +72,7 @@ func ExportToExcel(data []map[string]interface{}, headers []string, title string
 	// Write headers
 	for i, header := range headers {
 		cellPos := fmt.Sprintf("%c3", rune('A'+i))
-		f.SetCellValue(sheetName, cellPos, header)
+		f.SetCellValue(sheetName, cellPos, translate.TranslateKey(header))
 	}
 
 	// Apply header style
@@ -94,23 +95,23 @@ func ExportToExcel(data []map[string]interface{}, headers []string, title string
 		return "", nil, fmt.Errorf("error creating data style: %w", err)
 	}
 
-	// Number format style
-	numberStyle, err := f.NewStyle(&excelize.Style{
-		Border: []excelize.Border{
-			{Type: "left", Color: "000000", Style: 1},
-			{Type: "top", Color: "000000", Style: 1},
-			{Type: "bottom", Color: "000000", Style: 1},
-			{Type: "right", Color: "000000", Style: 1},
-		},
-		Alignment: &excelize.Alignment{
-			Horizontal: "right",
-			Vertical:   "center",
-		},
-		NumFmt: 3, // #,##0 format
-	})
-	if err != nil {
-		return "", nil, fmt.Errorf("error creating number style: %w", err)
-	}
+	// TODO: currently, no longer using number format style
+	// numberStyle, err := f.NewStyle(&excelize.Style{
+	// 	Border: []excelize.Border{
+	// 		{Type: "left", Color: "000000", Style: 1},
+	// 		{Type: "top", Color: "000000", Style: 1},
+	// 		{Type: "bottom", Color: "000000", Style: 1},
+	// 		{Type: "right", Color: "000000", Style: 1},
+	// 	},
+	// 	Alignment: &excelize.Alignment{
+	// 		Horizontal: "right",
+	// 		Vertical:   "center",
+	// 	},
+	// 	NumFmt: 3, // #,##0 format
+	// })
+	// if err != nil {
+	// 	return "", nil, fmt.Errorf("error creating number style: %w", err)
+	// }
 
 	// Write data
 	for i, item := range data {
@@ -121,12 +122,7 @@ func ExportToExcel(data []map[string]interface{}, headers []string, title string
 			f.SetCellValue(sheetName, cellPos, item[header])
 
 			// Apply style based on data type
-			switch header {
-			case "Mã sản phẩm", "Tên sản phẩm", "Đơn vị":
-				f.SetCellStyle(sheetName, cellPos, cellPos, dataStyle)
-			default:
-				f.SetCellStyle(sheetName, cellPos, cellPos, numberStyle)
-			}
+			f.SetCellStyle(sheetName, cellPos, cellPos, dataStyle)
 		}
 	}
 

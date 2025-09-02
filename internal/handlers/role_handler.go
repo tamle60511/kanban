@@ -11,6 +11,8 @@ import (
 
 // RoleHandler handles role operations
 type RoleHandler struct {
+	BaseHandler // Embedding BaseHandler
+
 	roleService service.RoleService
 }
 

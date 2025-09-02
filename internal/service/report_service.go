@@ -57,8 +57,9 @@ func (s *reportService) resolveDateRange(request *dto.DateRangeRequest) (time.Ti
 	toDate := time.Time{}
 
 	if request.Period != nil && *request.Period != "" {
-		log.Printf("Using period: %s", request.Period)
-		switch *request.Period {
+		period := *request.Period
+		log.Printf("Using period: %s", period)
+		switch period {
 		case "7days":
 			fromDate = currentEndOfDay.AddDate(0, 0, -6).Truncate(24 * time.Hour)
 			toDate = currentEndOfDay
@@ -76,7 +77,7 @@ func (s *reportService) resolveDateRange(request *dto.DateRangeRequest) (time.Ti
 			toDate = firstOfThisMonth.Add(-time.Nanosecond)
 			fromDate = time.Date(toDate.Year(), toDate.Month(), 1, 0, 0, 0, 0, now.Location())
 		default:
-			return time.Time{}, time.Time{}, fmt.Errorf("invalid period specified: %s", request.Period)
+			return time.Time{}, time.Time{}, fmt.Errorf("invalid period specified: %s", period)
 		}
 	} else if !request.FromDate.IsZero() && !request.ToDate.IsZero() {
 		log.Printf("Using FromDate and ToDate: %v - %v", request.FromDate, request.ToDate)
@@ -228,30 +229,30 @@ func (s *reportService) ExportInventoryReport(
 	)
 
 	headers := []string{
-		"Ngày CT",
-		"Mã Đơn Bán Hàng",
-		"Khách Hàng",
-		"Mã Phiếu Kết Số",
-		"Nguyên Tệ",
-		"Nội Tệ",
-		"Mã Đơn Hàng Chi Tiết",
-		"Hóa Đơn",
-		"Ghi Chú",
+		"document_date",
+		"sales_order_number",
+		"customer_name",
+		"receipt_number",
+		"currency_type",
+		"currency",
+		"detailed_order_number",
+		"invoice_number",
+		"notes",
 	}
 
 	// Prepare data for Excel export
 	data := make([]map[string]interface{}, len(items))
 	for i, item := range items {
 		data[i] = map[string]interface{}{
-			"Ngày CT":              item.NgayCT,
-			"Mã Đơn Bán Hàng":      item.MaDonBanHang,
-			"Khách Hàng":           item.KhachHang,
-			"Mã Phiếu Kết Số":      item.MaPhieuKetSo,
-			"Nguyên Tệ":            item.NguyenTe,
-			"Nội Tệ":               item.NoiTe,
-			"Mã Đơn Hàng Chi Tiết": item.MaDonHangChiTiet,
-			"Hóa Đơn":              item.HoaDon,
-			"Ghi Chú":              item.GhiChu,
+			"document_date":         item.DocumentDate,
+			"sales_order_number":    item.SalesOrderNumber,
+			"customer_name":         item.CustomerName,
+			"receipt_number":        item.ReceiptNumber,
+			"currency_type":         item.CurrencyType,
+			"currency":              item.Currency,
+			"detailed_order_number": item.DetailedOrderNumber,
+			"invoice_number":        item.InvoiceNumber,
+			"notes":                 item.Notes,
 		}
 	}
 	// Generate Excel file using utils

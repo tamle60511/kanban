@@ -9,6 +9,8 @@ import (
 
 // AdminHandler handles admin operations
 type AdminHandler struct {
+	BaseHandler // Embedding BaseHandler
+
 	userService       service.UserService
 	departmentService service.DepartmentService
 	roleService       service.RoleService

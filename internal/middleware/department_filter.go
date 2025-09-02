@@ -3,7 +3,7 @@ package middleware
 import (
 	"erp-excel/internal/utils"
 
-	"github.com/gofiber/fiber/v2"
+	fiber "github.com/gofiber/fiber/v2"
 )
 
 // DepartmentFilterMiddleware filters data based on user's department

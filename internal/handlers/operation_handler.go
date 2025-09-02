@@ -10,6 +10,8 @@ import (
 
 // OperationHandler handles operation-related HTTP requests
 type OperationHandler struct {
+	BaseHandler // Embedding BaseHandler
+
 	operationService service.OperationService
 }
 

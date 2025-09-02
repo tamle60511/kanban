@@ -58,12 +58,8 @@ func LoadConfig() (*Config, error) {
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(configPath)
 
-	// Set default values
-	viper.SetDefault("server.port", "8080")
-	viper.SetDefault("database.timeout", 10)
-	viper.SetDefault("jwt.expiry_hour", 24)
-	viper.SetDefault("excel.max_search_months", 6)
-	viper.SetDefault("excel.download_path", "public/downloads")
+	viper.AutomaticEnv()
+	viper.SetEnvPrefix("KANBAN")
 
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("error reading config: %w", err)

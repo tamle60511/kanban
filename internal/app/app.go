@@ -13,7 +13,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/gofiber/fiber/v2"
+	fiber "github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
@@ -21,11 +21,17 @@ import (
 
 // App represents the application
 type App struct {
-	config         *config.Config
-	fiber          *fiber.App
-	db             database.Database
-	authService    service.AuthService
-	handlers       []interface{} // List of all handlers
+	config *config.Config
+	fiber  *fiber.App
+	db     database.Database
+
+	// Handlers
+	handlers []handlers.BaseHandler // List of all handlers
+
+	// Services
+	authService service.AuthService
+
+	// Repository
 	userRepo       repository.UserRepository
 	departmentRepo repository.DepartmentRepository
 	roleRepo       repository.RoleRepository
@@ -87,7 +93,7 @@ func New(cfg *config.Config, db database.Database) *App {
 	adminHandler := handlers.NewAdminHandler(userService, departmentService, roleService, operationService)
 
 	// Store handlers
-	app.handlers = []interface{}{
+	app.handlers = []handlers.BaseHandler{
 		authHandler,
 		userHandler,
 		departmentHandler,
@@ -111,24 +117,20 @@ func (a *App) SetupRoutes() {
 		})
 	})
 
-	// Static files for downloads
-	a.fiber.Static("/downloads", "./public/downloads")
-
 	// API routes
 	api := a.fiber.Group("/api")
 
-	// Public routes
-	auth := api.Group("/auth")
-	handlers.NewAuthHandler(a.authService).SetupRoutes(auth)
+	// white list routes
+	whitelist := []string{
+		"/api/auth/login",
+	}
 
 	// Protected routes
-	protected := api.Group("/", middleware.JWTMiddleware(a.authService))
+	protected := api.Group("/", middleware.JWTMiddleware(a.authService, whitelist))
 
 	// Setup all handler routes
-	for _, h := range a.handlers {
-		if handler, ok := h.(interface{ SetupRoutes(router fiber.Router) }); ok {
-			handler.SetupRoutes(protected)
-		}
+	for _, handler := range a.handlers {
+		handler.SetupRoutes(protected)
 	}
 
 	// 404 handler

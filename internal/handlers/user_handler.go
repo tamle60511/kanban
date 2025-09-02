@@ -11,6 +11,8 @@ import (
 
 // UserHandler handles user operations
 type UserHandler struct {
+	BaseHandler // Embedding BaseHandler
+
 	userService service.UserService
 }
 
