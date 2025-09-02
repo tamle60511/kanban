@@ -1,0 +1,33 @@
+server:
+  name: KanBan
+  port: 8080
+  env: development
+
+database:
+  host: 192.168.0.200
+  port: 1433  
+  user: sa
+  password: dsc@123
+  name: TEST_KANBAN
+  timeout: 10
+
+# Thêm cấu hình database ERP
+erp_database:
+  host: 192.168.0.200
+  port: 1433
+  user: sa
+  password: dsc@123
+  name: Leader
+  timeout: 10
+
+jwt:
+  secret: your_jwt_secret_key
+  expiry_hour: 24
+
+excel:
+  download_path: public/downloads
+  max_search_months: 6
+
+logger:
+  level: info
+  path: logs/app.log
