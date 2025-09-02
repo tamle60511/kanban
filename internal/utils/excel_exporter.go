@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bytes"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -10,7 +11,7 @@ import (
 )
 
 // ExportToExcel exports data to Excel file
-func ExportToExcel(data []map[string]interface{}, headers []string, title string) (string, *excelize.File, error) {
+func ExportToExcel(data []map[string]interface{}, headers []string, title string) (string, *bytes.Buffer, error) {
 	// Create a new Excel file
 	f := excelize.NewFile()
 	defer f.Close()
@@ -151,7 +152,12 @@ func ExportToExcel(data []map[string]interface{}, headers []string, title string
 	// Complete filename
 	filename := fmt.Sprintf("%s_%s.xlsx", safeTitlePart, timestamp)
 
-	return filename, f, nil
+	// Write file to buffer and return
+	buf, err := f.WriteToBuffer()
+	if err != nil {
+		return "", nil, fmt.Errorf("error writing Excel to buffer: %w", err)
+	}
+	return filename, buf, nil
 }
 
 // sanitizeFilename removes invalid characters from filename
