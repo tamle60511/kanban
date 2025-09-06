@@ -83,11 +83,11 @@ func (s *authService) Login(ctx context.Context, req dto.LoginRequest) (*dto.Log
 		Username:     user.Username,
 		FullName:     user.FullName,
 		Email:        user.Email,
-		Phone:        user.Phone,
 		DepartmentID: user.DepartmentID,
 		Department:   user.Department.Name,
 		IsActive:     user.IsActive,
 		CreatedAt:    user.CreatedAt,
+		UpdatedAt:    user.UpdatedAt,
 		Roles:        roleNames,
 	}
 
@@ -180,11 +180,11 @@ func (s *authService) GetUserProfile(ctx context.Context, userID int) (*dto.User
 		Username:     user.Username,
 		FullName:     user.FullName,
 		Email:        user.Email,
-		Phone:        user.Phone,
 		DepartmentID: user.DepartmentID,
 		Department:   departmentName,
 		IsActive:     user.IsActive,
 		CreatedAt:    user.CreatedAt,
+		UpdatedAt:    user.UpdatedAt,
 		Roles:        roleNames,
 	}, nil
 }

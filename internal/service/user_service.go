@@ -64,7 +64,6 @@ func (s *userService) CreateUser(ctx context.Context, request dto.CreateUserRequ
 		Password:     hashedPassword,
 		FullName:     request.FullName,
 		Email:        request.Email,
-		Phone:        request.Phone,
 		DepartmentID: request.DepartmentID,
 		IsActive:     true,
 	}
@@ -98,7 +97,6 @@ func (s *userService) CreateUser(ctx context.Context, request dto.CreateUserRequ
 		Username:     createdUser.Username,
 		FullName:     createdUser.FullName,
 		Email:        createdUser.Email,
-		Phone:        createdUser.Phone,
 		DepartmentID: createdUser.DepartmentID,
 		Department:   department.Name,
 		IsActive:     createdUser.IsActive,
@@ -114,19 +112,17 @@ func (s *userService) GetUserByID(ctx context.Context, id int) (*dto.UserRespons
 		return nil, fmt.Errorf("error getting user: %w", err)
 	}
 
-	// Extract role names
+	// Prepare response
 	roleNames := make([]string, 0, len(user.Roles))
 	for _, role := range user.Roles {
 		roleNames = append(roleNames, role.Name)
 	}
 
-	// Create response
 	return &dto.UserResponse{
 		ID:           user.ID,
 		Username:     user.Username,
 		FullName:     user.FullName,
 		Email:        user.Email,
-		Phone:        user.Phone,
 		DepartmentID: user.DepartmentID,
 		Department:   user.Department.Name,
 		IsActive:     user.IsActive,
@@ -150,10 +146,6 @@ func (s *userService) UpdateUser(ctx context.Context, id int, request dto.Update
 
 	if request.Email != "" {
 		user.Email = request.Email
-	}
-
-	if request.Phone != "" {
-		user.Phone = request.Phone
 	}
 
 	if request.DepartmentID != 0 {
@@ -203,7 +195,6 @@ func (s *userService) UpdateUser(ctx context.Context, id int, request dto.Update
 		Username:     user.Username,
 		FullName:     user.FullName,
 		Email:        user.Email,
-		Phone:        user.Phone,
 		DepartmentID: user.DepartmentID,
 		Department:   departmentName,
 		IsActive:     user.IsActive,
@@ -249,7 +240,7 @@ func (s *userService) DeleteUser(ctx context.Context, id int) error {
 	return s.userRepo.Delete(ctx, id)
 }
 
-// GetAllUsers gets all users with pagination
+// In UserService.GetAllUsers
 func (s *userService) GetAllUsers(ctx context.Context, limit, offset int) ([]*dto.UserResponse, error) {
 	users, err := s.userRepo.List(ctx, limit, offset)
 	if err != nil {
@@ -259,15 +250,9 @@ func (s *userService) GetAllUsers(ctx context.Context, limit, offset int) ([]*dt
 	// Convert to response DTOs
 	response := make([]*dto.UserResponse, 0, len(users))
 	for _, user := range users {
-		// Get roles for this user
-		roles, err := s.userRepo.GetUserRoles(ctx, user.ID)
-		if err != nil {
-			return nil, fmt.Errorf("error getting roles for user: %w", err)
-		}
-
 		// Extract role names
-		roleNames := make([]string, 0, len(roles))
-		for _, role := range roles {
+		roleNames := make([]string, 0, len(user.Roles))
+		for _, role := range user.Roles {
 			roleNames = append(roleNames, role.Name)
 		}
 
@@ -281,7 +266,6 @@ func (s *userService) GetAllUsers(ctx context.Context, limit, offset int) ([]*dt
 			Username:     user.Username,
 			FullName:     user.FullName,
 			Email:        user.Email,
-			Phone:        user.Phone,
 			DepartmentID: user.DepartmentID,
 			Department:   departmentName,
 			IsActive:     user.IsActive,

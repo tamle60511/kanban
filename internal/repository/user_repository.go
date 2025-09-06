@@ -38,9 +38,9 @@ func NewUserRepository(db *sql.DB) UserRepository {
 // Create adds a new user to the database
 func (r *userRepository) Create(ctx context.Context, user *models.User) (*models.User, error) {
 	query := `
-        INSERT INTO users (username, password, full_name, email, phone, department_id, is_active, created_at, updated_at)
+        INSERT INTO users (username, password, full_name, phone, department_id, is_active, created_at, updated_at)
         OUTPUT INSERTED.id
-        VALUES (@username, @password, @full_name, @email, @phone, @department_id, @is_active, @created_at, @updated_at)
+        VALUES (@username, @password, @full_name, @email, @department_id, @is_active, @created_at, @updated_at)
     `
 
 	stmt, err := r.db.PrepareContext(ctx, query)
@@ -56,7 +56,6 @@ func (r *userRepository) Create(ctx context.Context, user *models.User) (*models
 		sql.Named("password", user.Password),
 		sql.Named("full_name", user.FullName),
 		sql.Named("email", user.Email),
-		sql.Named("phone", user.Phone),
 		sql.Named("department_id", user.DepartmentID),
 		sql.Named("is_active", user.IsActive),
 		sql.Named("created_at", time.Now()),
@@ -71,56 +70,81 @@ func (r *userRepository) Create(ctx context.Context, user *models.User) (*models
 	return user, nil
 }
 
-// GetByID gets a user by ID
 func (r *userRepository) GetByID(ctx context.Context, id int) (*models.User, error) {
 	query := `
-        SELECT u.id, u.username, u.password, u.full_name, u.email, u.phone, u.department_id, 
+        SELECT u.id, u.username, u.full_name, u.email, u.department_id, 
                u.is_active, u.last_login, u.created_at, u.updated_at,
-               d.name as department_name
+               d.name as department_name, 
+               r.id as role_id, r.name as role_name, r.description as role_description
         FROM users u
         LEFT JOIN departments d ON u.department_id = d.id
+        LEFT JOIN user_roles ur ON u.id = ur.user_id
+        LEFT JOIN roles r ON ur.role_id = r.id
         WHERE u.id = @id
     `
 
-	var user models.User
-	var department models.Department
-	var lastLogin sql.NullTime
-
-	err := r.db.QueryRowContext(ctx, query, sql.Named("id", id)).Scan(
-		&user.ID,
-		&user.Username,
-		&user.Password,
-		&user.FullName,
-		&user.Email,
-		&user.Phone,
-		&user.DepartmentID,
-		&user.IsActive,
-		&lastLogin,
-		&user.CreatedAt,
-		&user.UpdatedAt,
-		&department.Name,
-	)
-
+	rows, err := r.db.QueryContext(ctx, query, sql.Named("id", id))
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("user not found: %w", err)
 		}
 		return nil, fmt.Errorf("error getting user: %w", err)
 	}
+	defer rows.Close()
 
-	if lastLogin.Valid {
-		user.LastLogin = lastLogin.Time
+	var user models.User
+	var department models.Department
+	var lastLogin sql.NullTime
+	rolesMap := make(map[int]*models.Role)
+
+	for rows.Next() {
+		var role models.Role
+		var roleID sql.NullInt64
+		var roleName sql.NullString
+		var roleDescription sql.NullString
+
+		err := rows.Scan(
+			&user.ID,
+			&user.Username,
+			&user.FullName,
+			&user.Email,
+			&user.DepartmentID,
+			&user.IsActive,
+			&lastLogin,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+			&department.Name,
+			&roleID,
+			&roleName,
+			&roleDescription,
+		)
+
+		if err != nil {
+			return nil, fmt.Errorf("error scanning user: %w", err)
+		}
+
+		if lastLogin.Valid {
+			user.LastLogin = lastLogin.Time
+		}
+
+		if roleID.Valid {
+			role.ID = int(roleID.Int64)
+			role.Name = roleName.String
+			role.Description = roleDescription.String
+
+			if _, exists := rolesMap[role.ID]; !exists {
+				rolesMap[role.ID] = &role
+				user.Roles = append(user.Roles, &role)
+			}
+
+		}
 	}
 
-	department.ID = user.DepartmentID
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating rows: %w", err)
+	}
+
 	user.Department = &department
-
-	// Get user roles
-	roles, err := r.GetUserRoles(ctx, user.ID)
-	if err != nil {
-		return nil, fmt.Errorf("error getting user roles: %w", err)
-	}
-	user.Roles = roles
 
 	return &user, nil
 }
@@ -128,7 +152,7 @@ func (r *userRepository) GetByID(ctx context.Context, id int) (*models.User, err
 // GetByUsername gets a user by username
 func (r *userRepository) GetByUsername(ctx context.Context, username string) (*models.User, error) {
 	query := `
-        SELECT u.id, u.username, u.password, u.full_name, u.email, u.phone, u.department_id, 
+        SELECT u.id, u.username, u.password, u.full_name, u.email, u.department_id, 
                u.is_active, u.last_login, u.created_at, u.updated_at,
                d.name as department_name
         FROM users u
@@ -146,7 +170,6 @@ func (r *userRepository) GetByUsername(ctx context.Context, username string) (*m
 		&user.Password,
 		&user.FullName,
 		&user.Email,
-		&user.Phone,
 		&user.DepartmentID,
 		&user.IsActive,
 		&lastLogin,
@@ -178,7 +201,6 @@ func (r *userRepository) Update(ctx context.Context, user *models.User) error {
         UPDATE users
         SET full_name = @full_name,
             email = @email,
-            phone = @phone,
             department_id = @department_id,
             is_active = @is_active,
             updated_at = @updated_at
@@ -190,7 +212,6 @@ func (r *userRepository) Update(ctx context.Context, user *models.User) error {
 		query,
 		sql.Named("full_name", user.FullName),
 		sql.Named("email", user.Email),
-		sql.Named("phone", user.Phone),
 		sql.Named("department_id", user.DepartmentID),
 		sql.Named("is_active", user.IsActive),
 		sql.Named("updated_at", time.Now()),
@@ -244,7 +265,6 @@ func (r *userRepository) Delete(ctx context.Context, id int) error {
 	return nil
 }
 
-// List gets a list of users
 func (r *userRepository) List(ctx context.Context, limit, offset int) ([]*models.User, error) {
 	query := `
         SELECT *
@@ -254,18 +274,26 @@ func (r *userRepository) List(ctx context.Context, limit, offset int) ([]*models
                 u.username, 
                 u.full_name, 
                 u.email, 
-                u.phone, 
                 u.department_id, 
                 u.is_active, 
                 u.last_login, 
                 u.created_at, 
                 u.updated_at,
-                d.name as department_name,
+                d.name AS department_name,
+                r.id AS role_id,
+                r.name AS role_name,
                 ROW_NUMBER() OVER (ORDER BY u.id) AS RowNum
-            FROM users u
-            LEFT JOIN departments d ON u.department_id = d.id
+            FROM 
+                users u
+            LEFT JOIN 
+                departments d ON u.department_id = d.id
+            LEFT JOIN 
+                user_roles ur ON u.id = ur.user_id  
+            LEFT JOIN 
+                roles r ON ur.role_id = r.id 
         ) AS UsersWithRowNumbers
         WHERE RowNum BETWEEN @offset + 1 AND @offset + @limit
+        ORDER BY id
     `
 
 	rows, err := r.db.QueryContext(
@@ -279,26 +307,31 @@ func (r *userRepository) List(ctx context.Context, limit, offset int) ([]*models
 	}
 	defer rows.Close()
 
+	userMap := make(map[int]*models.User)
 	var users []*models.User
+
 	for rows.Next() {
 		var user models.User
 		var department models.Department
 		var lastLogin sql.NullTime
-		var rowNum int // Thêm biến để scan row number
+		var roleID sql.NullInt64
+		var roleName sql.NullString
+		var rowNum int
 
 		err := rows.Scan(
 			&user.ID,
 			&user.Username,
 			&user.FullName,
 			&user.Email,
-			&user.Phone,
 			&user.DepartmentID,
 			&user.IsActive,
 			&lastLogin,
 			&user.CreatedAt,
 			&user.UpdatedAt,
 			&department.Name,
-			&rowNum, // Scan row number
+			&roleID,
+			&roleName,
+			&rowNum,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning user: %w", err)
@@ -311,7 +344,20 @@ func (r *userRepository) List(ctx context.Context, limit, offset int) ([]*models
 		department.ID = user.DepartmentID
 		user.Department = &department
 
-		users = append(users, &user)
+		// Check if user already exists in the map
+		existingUser, ok := userMap[user.ID]
+		if !ok {
+			// If user doesn't exist, create a new one
+			existingUser = &user
+			existingUser.Department = &department
+			users = append(users, existingUser)
+			userMap[user.ID] = existingUser
+		}
+
+		// Add role to the user
+		if roleID.Valid {
+			existingUser.Roles = append(existingUser.Roles, &models.Role{ID: int(roleID.Int64), Name: roleName.String})
+		}
 	}
 
 	if err := rows.Err(); err != nil {

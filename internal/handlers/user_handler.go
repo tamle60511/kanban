@@ -179,13 +179,20 @@ func (h *UserHandler) Update(c *fiber.Ctx) error {
 
 // UpdatePassword updates a user's password
 func (h *UserHandler) UpdatePassword(c *fiber.Ctx) error {
-	// Get current user ID
-	userID, ok := c.Locals("user_id").(int)
-	if !ok || userID == 0 {
-		return c.Status(fiber.StatusUnauthorized).JSON(utils.ErrorResponse(
-			"Authentication required",
-			"User not authenticated",
-		))
+	var (
+		userID int
+		ok     bool
+	)
+	isAdmin, _ := c.Locals("is_admin").(bool)
+	if !isAdmin {
+		// Get current user ID
+		userID, ok = c.Locals("user_id").(int)
+		if !ok || userID == 0 {
+			return c.Status(fiber.StatusUnauthorized).JSON(utils.ErrorResponse(
+				"Authentication required",
+				"User not authenticated",
+			))
+		}
 	}
 
 	var request dto.UpdatePasswordRequest

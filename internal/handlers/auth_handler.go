@@ -57,6 +57,16 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 
 // GetProfile retrieves the current user's profile
 func (h *AuthHandler) GetProfile(c *fiber.Ctx) error {
+	isAdmin, _ := c.Locals("is_admin").(bool)
+	if isAdmin {
+		return c.Status(fiber.StatusOK).JSON(utils.SuccessResponse(
+			dto.UserResponse{
+				Username: "admin",
+				FullName: "Admin",
+			},
+			"Profile retrieved successfully",
+		))
+	}
 	userID, ok := c.Locals("user_id").(int)
 	if !ok || userID == 0 {
 		return c.Status(fiber.StatusUnauthorized).JSON(utils.ErrorResponse(

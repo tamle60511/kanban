@@ -26,17 +26,18 @@ type App struct {
 	db     database.Database
 
 	// Handlers
-	handlers []handlers.BaseHandler // List of all handlers
+	handlers []handlers.BaseHandler
 
 	// Services
 	authService service.AuthService
 
-	// Repository
-	userRepo       repository.UserRepository
-	departmentRepo repository.DepartmentRepository
-	roleRepo       repository.RoleRepository
-	operationRepo  repository.OperationRepository
-	reportRepo     repository.InventoryRepository
+	// Repositories
+	userRepo         repository.UserRepository
+	departmentRepo   repository.DepartmentRepository
+	roleRepo         repository.RoleRepository
+	operationRepo    repository.OperationRepository
+	reportRepo       repository.InventoryRepository
+	assistant610Repo repository.Assistant610Repository
 }
 
 // New creates a new application instance
@@ -59,7 +60,7 @@ func New(cfg *config.Config, db database.Database) *App {
 		AllowOrigins:     "*",
 		AllowMethods:     "*",
 		AllowHeaders:     "*",
-		AllowCredentials: true,
+		AllowCredentials: false,
 	}))
 
 	// Setup repositories
@@ -68,6 +69,7 @@ func New(cfg *config.Config, db database.Database) *App {
 	app.roleRepo = repository.NewRoleRepository(app.db.DB())
 	app.operationRepo = repository.NewOperationRepository(app.db.DB())
 	app.reportRepo = repository.NewInventoryRepository(app.db.ERPDatabase())
+	app.assistant610Repo = repository.NewAssistant610Repository(app.db.ERPDatabase())
 
 	// Setup services
 	app.authService = service.NewAuthService(app.userRepo, app.config)
@@ -82,7 +84,13 @@ func New(cfg *config.Config, db database.Database) *App {
 		app.operationRepo,
 		app.reportRepo,
 	)
-
+	assistant610Service := service.NewAssistant610Service(
+		app.db.ERPDatabase(),
+		app.config,
+		app.userRepo,
+		app.operationRepo,
+		app.assistant610Repo,
+	)
 	// Setup handlers
 	authHandler := handlers.NewAuthHandler(app.authService)
 	userHandler := handlers.NewUserHandler(userService)
@@ -91,7 +99,7 @@ func New(cfg *config.Config, db database.Database) *App {
 	reportHandler := handlers.NewReportHandler(reportService, app.reportRepo)
 	operationHandler := handlers.NewOperationHandler(operationService)
 	adminHandler := handlers.NewAdminHandler(userService, departmentService, roleService, operationService)
-
+	assistant610Hander := handlers.NewAssistant610Handler(assistant610Service, app.assistant610Repo)
 	// Store handlers
 	app.handlers = []handlers.BaseHandler{
 		authHandler,
@@ -101,6 +109,7 @@ func New(cfg *config.Config, db database.Database) *App {
 		reportHandler,
 		adminHandler,
 		operationHandler,
+		assistant610Hander,
 	}
 
 	return app

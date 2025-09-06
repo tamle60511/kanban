@@ -11,6 +11,10 @@ import (
 func RoleCheckMiddleware(operationService service.OperationService) func(string) fiber.Handler {
 	return func(operationCode string) fiber.Handler {
 		return func(c *fiber.Ctx) error {
+			isAdmin, _ := c.Locals("is_admin").(bool)
+			if isAdmin {
+				return c.Next()
+			}
 			// Get user ID from context
 			userID, ok := c.Locals("user_id").(int)
 			if !ok || userID == 0 {
